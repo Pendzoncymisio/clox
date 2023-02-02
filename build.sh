@@ -1,2 +1,2 @@
-gcc -o clox main.c chunk.c memory.c debug.c
+gcc -o clox main.c chunk.c memory.c debug.c value.c
 ./clox
