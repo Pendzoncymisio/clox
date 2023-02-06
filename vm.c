@@ -41,14 +41,14 @@ push(a op b); \
 
     for (;;) {
     #ifdef DEBUG_TRACE_EXECUTION
+        disassembleInstruction(vm.chunk, (int)(vm.ip - vm.chunk->code));
         printf(" ");
         for(Value* slot = vm.stack; slot < vm.stackTop; slot++) {
             printf("[ ");
             printValue(*slot);
             printf(" ]");
         }
-        printf("\n");
-        disassembleInstruction(vm.chunk, (int)(vm.ip - vm.chunk->code));
+        
     #endif
         uint8_t instruction;
         switch (instruction=READ_BYTE())
