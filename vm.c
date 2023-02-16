@@ -100,6 +100,7 @@ push(valueType(a op b)); \
         case OP_NIL: push(NIL_VAL); break;
         case OP_TRUE: push(BOOL_VAL(true)); break;
         case OP_FALSE: push(BOOL_VAL(false)); break;
+        case OP_POP: pop(); break();
         case OP_EQUAL: {
             Value b = pop();
             Value a = pop();
@@ -125,16 +126,19 @@ push(valueType(a op b)); \
         case OP_MULTIPLY: BINARY_OP(NUMBER_VAL, *); break;
         case OP_DIVIDE: BINARY_OP(NUMBER_VAL, /); break;
         case OP_NOT: push(BOOL_VAL(isFalsey(pop()))); break;
-        case OP_NEGATE: 
+        case OP_NEGATE:
             if (!IS_NUMBER(peek(0))) {
                 runtimeError("Operand must be a number.");
                 return INTERPRET_RUNTIME_ERROR;
             }
             push(NUMBER_VAL(-AS_NUMBER(pop())));
-        break;
+            break;
+        case OP_PRINT: {
+            printValue(pop());
+            printf("\n");
+            break;
+        }
         case OP_RETURN: {
-                printValue(pop());
-                printf("\n");
                 return INTERPRET_OK;
             }
         }
