@@ -1,8 +1,13 @@
-fun fib(n) {
-	if (n<2) return n;
-	return fib(n-2) + fib(n-1);
+class CofeeMaker {
+	init(coffee) {
+		this.coffee = coffee;
+	}
+
+	brew() {
+		print "Enjoy your cup of " + this.coffee;
+		this.coffee = nil;
+	}
 }
 
-var start = clock();
-print fib(10);
-print clock() - start;
+var maker = CofeeMaker("cappuccino");
+maker.brew();
