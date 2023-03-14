@@ -16,14 +16,14 @@ static int constantInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset+1];
     printf("%-16s %4d '", name, constant);
     printValue(chunk->constants.values[constant]);
-    printf("'");
+    printf("'\n");
     return offset + 2;
 }
 
 static int invokeInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset+1];
     uint8_t argCount = chunk->code[offset+2];
-    printf("%-16s (%d args) %4d.'", name, argCount, constant);
+    printf("%-16s (%d args) %4d '", name, argCount, constant);
     printValue(chunk->constants.values[constant]);
     printf("'\n");
     return offset + 3;
@@ -33,7 +33,7 @@ static int simpleInstruction(const char* name, int offset) {
     printf("%s", name);
     int count;
     for (count = 0; name[count] != '\0'; ++count);
-    printf("%*s", 25 - count, "");
+    printf("%*s\n", 25 - count, "");
     return offset + 1;
 }
 
@@ -51,7 +51,7 @@ static int jumpInstruction(const char* name, int sign, Chunk* chunk, int offset)
 }
 
 int disassembleInstruction(Chunk* chunk, int offset) {
-    printf("\n%04d ", offset);
+    printf("%04d ", offset);
     if (offset > 0 && chunk->lines[offset] == chunk->lines[offset-1]) {
         printf("  | ");
     } else {
@@ -96,7 +96,7 @@ int disassembleInstruction(Chunk* chunk, int offset) {
     case OP_CLOSURE: {
         offset++;
         uint8_t constant = chunk->code[offset++];
-        printf("%-16s %4d","OP_CLOSURE", constant);
+        printf("%-16s %4d ","OP_CLOSURE", constant);
         printValue(chunk->constants.values[constant]);
         printf("\n");
 
@@ -104,7 +104,7 @@ int disassembleInstruction(Chunk* chunk, int offset) {
         for (int j = 0; j < function->upvalueCount; j++) {
             int isLocal = chunk->code[offset++];
             int index = chunk->code[offset++];
-            printf("%04d | %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
+            printf("%04d      |                     %s %d\n", offset - 2, isLocal ? "local" : "upvalue", index);
         }
         return offset;
     }
