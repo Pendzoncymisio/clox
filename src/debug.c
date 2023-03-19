@@ -4,22 +4,44 @@
 #include "object.h"
 #include "value.h"
 
+/* Debug print all instructions in a chunk
+*   Arguments:
+*   - Chunk* chunk: to be disassembled
+*   - const char* name: of the chunk
+*/
 void disassembleChunk(Chunk* chunk, const char* name) {
     printf("== %s ==\n", name);
 
     for (int offset = 0; offset < chunk->count;) {
+        // As the instruction can have many operands that need to be printed side by side, function will increment offset
         offset = disassembleInstruction(chunk, offset);
     }
 }
 
+/* Debug print constant instruction
+*   Arguments:
+*   - const char* name: of the instruction
+*   - Chunk* chunk: from which instruction originate
+*   - int offset: of the instruction
+*
+*   Return offset incremented by 2
+*/
 static int constantInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset+1];
     printf("%-16s %4d '", name, constant);
-    printValue(chunk->constants.values[constant]);
+    printValue(chunk->constants.values[constant]); // Get constant from constants table
     printf("'\n");
     return offset + 2;
 }
 
+/* Debug print invoke instruction
+*   Arguments:
+*   - const char* name: of the instruction
+*   - Chunk* chunk: from which instruction originate
+*   - int offset: of the instruction
+*
+*   Return offset incremented by 3
+*/
 static int invokeInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t constant = chunk->code[offset+1];
     uint8_t argCount = chunk->code[offset+2];
@@ -29,6 +51,13 @@ static int invokeInstruction(const char* name, Chunk* chunk, int offset) {
     return offset + 3;
 }
 
+/* Debug print simple instruction
+*   Arguments:
+*   - const char* name: of the instruction
+*   - int offset: of the instruction
+*
+*   Return offset incremented by 1
+*/
 static int simpleInstruction(const char* name, int offset) {
     printf("%s", name);
     int count;
@@ -37,19 +66,43 @@ static int simpleInstruction(const char* name, int offset) {
     return offset + 1;
 }
 
+/* Debug print byte instruction (getting/setting variables)
+*   Arguments:
+*   - const char* name: of the instruction
+*   - Chunk* chunk: from which instruction originate
+*   - int offset: of the instruction
+*
+*   Return offset incremented by 2
+*/
 static int byteInstruction(const char* name, Chunk* chunk, int offset) {
     uint8_t slot = chunk->code[offset + 1];
     printf("%-16s %4d\n", name, slot);
     return offset + 2;
 }
 
+/* Debug print jump instruction
+*   Arguments:
+*   - const char* name: of the instruction
+*   - int sign: 1 or -1 depending if jump forward or backward
+*   - Chunk* chunk: from which instruction originate
+*   - int offset: of the instruction
+*
+*   Return offset incremented by 3
+*/
 static int jumpInstruction(const char* name, int sign, Chunk* chunk, int offset) {
-    uint16_t jump = (uint16_t)(chunk->code[offset+1] << 8);
-    jump |= chunk->code[offset+2];
+    uint16_t jump = (uint16_t)(chunk->code[offset+1] << 8); // Higher bits of jump offsets go as first operand
+    jump |= chunk->code[offset+2];  // Lower bits of jump offset go as second operand
     printf("%-16s %4d -> %d\n", name, offset, offset + 3 + sign * jump);
     return offset + 3;
 }
 
+/* Debug print one instruction
+*   Arguments:
+*   - Chunk* chunk: from which instruction originate
+*   - int offset: of the instruction
+*
+*   Return offset incremented by correct amount dependent on number of operands
+*/
 int disassembleInstruction(Chunk* chunk, int offset) {
     printf("%04d ", offset);
     if (offset > 0 && chunk->lines[offset] == chunk->lines[offset-1]) {
@@ -94,13 +147,14 @@ int disassembleInstruction(Chunk* chunk, int offset) {
     case OP_INVOKE:         return invokeInstruction("OP_INVOKE", chunk, offset);
     case OP_SUPER_INVOKE:   return invokeInstruction("OP_SUPER_INVOKE", chunk, offset);
     case OP_CLOSURE: {
-        offset++;
-        uint8_t constant = chunk->code[offset++];
-        printf("%-16s %4d ","OP_CLOSURE", constant);
-        printValue(chunk->constants.values[constant]);
+        offset++; // Move offset behind opcode itself
+        uint8_t constant = chunk->code[offset++]; // Get closure name
+        printf("%-16s %4d ","OP_CLOSURE", constant); // Print opcode and closure address
+        printValue(chunk->constants.values[constant]); // Print closure name
         printf("\n");
 
         ObjFunction* function = AS_FUNCTION(chunk->constants.values[constant]);
+        // Loop through upvalues
         for (int j = 0; j < function->upvalueCount; j++) {
             int isLocal = chunk->code[offset++];
             int index = chunk->code[offset++];

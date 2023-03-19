@@ -4,48 +4,80 @@
 #include "common.h"
 #include "scanner.h"
 
+/* Scanner struct
+*
+*   Fields:
+*   - const char* start: start of the current lexeme being scanned
+*   - const char* current: current character
+*   - int line: line number of the scanned lexeme for error logging
+*/
 typedef struct {
-    const char* start;
-    const char* current;
-    int line;
+    const char* start; // start of the current lexeme being scanned
+    const char* current; // current character
+    int line; // line number of the scanned lexeme for error logging
 } Scanner;
 
 Scanner scanner;
 
+/* Initialize global scanner variable
+*   Arguments:
+*   - const char* source: code to be scanned
+*/
 void initScanner(const char* source) {
     scanner.start = source;
     scanner.current = source;
     scanner.line = 1;
 }
 
+/* Check if character is alphanumeric
+*   Arguments:
+*   - char c: character to be checked
+*/
 static bool isAlpha(char c) {
     return (c >= 'a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
             c == '_';
 }
 
+/* Check if character is a digit
+*   Arguments:
+*   - char c: character to be checked
+*/
 static bool isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
+// Check if scenner reached end of file
 static bool isAtEnd() {
     return *scanner.current == '\0';
 }
 
+/* Advance scanner to the next character
+*
+*   Return just consumed character
+*/
 static char advance() {
     scanner.current++;
     return scanner.current[-1];
 }
 
+// Return currently scanned character without advancing scanner
 static char peek() {
     return *scanner.current;
 }
 
+// Return next character without advancing scanner
 static char peekNext() {
     if (isAtEnd()) return '\0';
     return scanner.current[1];
 }
 
+/* Advance scanner when character is expected
+*   Arguments:
+*   - char expected: character
+*   
+*   Return whether match successful
+*/
 static bool match(char expected) {
     if (isAtEnd()) return false;
     if (*scanner.current != expected) return false;
@@ -53,15 +85,27 @@ static bool match(char expected) {
     return true;
 }
 
+/* Make token after scanning whole lexeme
+*   Arguments:
+*   - TokenType type: of the token to be created
+*   
+*   Return token with fields populated
+*/
 static Token makeToken(TokenType type) {
     Token token;
     token.type = type;
-    token.start = scanner.start;
-    token.length = (int)(scanner.current - scanner.start);
+    token.start = scanner.start; // Start of the token is character at the start of the lexeme
+    token.length = (int)(scanner.current - scanner.start); // Difference between pointers casted to integer
     token.line = scanner.line;
     return token;
 }
 
+/* Make error token
+*   Arguments:
+*   - const char* message: error message to be displayed
+*   
+*   Return token with fields populated
+*/
 static Token errorToken(const char* message) {
     Token token;
     token.type = TOKEN_ERROR;
@@ -71,6 +115,7 @@ static Token errorToken(const char* message) {
     return token;
 }
 
+// Skip whitespaces until not-whitespace
 static void skipWhitespace() {
     for (;;) {
         char c = peek();
@@ -86,8 +131,8 @@ static void skipWhitespace() {
             advance();
             break;
         case '/':
-            if (peekNext() == '/') {
-                while (peek() != '\n' && !isAtEnd()) advance();
+            if (peekNext() == '/') { // Handling one-line comments
+                while (peek() != '\n' && !isAtEnd()) advance(); // Skipping until line break or end of file
             } else {
                 return;
             }
@@ -97,6 +142,15 @@ static void skipWhitespace() {
     }
 }
 
+/* Check if the rest of the lexeme is equal to argument
+*   Arguments:
+*   - int start: how many character were already scanned
+*   - int length: length of the <rest> argument
+*   - const char* rest: string to campare rest of lexeme to
+*   - TokenType type: of token that should be generated
+*   
+*   Return <type> if check successful, TOKEN_IDENTIFIER otherwise
+*/
 static TokenType checkKeyword(int start, int length, const char* rest, TokenType type) {
     if (scanner.current - scanner.start == start + length &&
         memcmp(scanner.start + start, rest, length) == 0) {
@@ -106,6 +160,10 @@ static TokenType checkKeyword(int start, int length, const char* rest, TokenType
     return TOKEN_IDENTIFIER;
 }
 
+/* Check if lexeme is a keyword
+*   
+*   Return appropriate TokenType when found a keyword, TOKEN_IDENTIFIER otherwise
+*/
 static TokenType identifierType() {
     switch (scanner.start[0]) {
         case 'a': return checkKeyword(1, 2, "nd", TOKEN_AND);
@@ -140,11 +198,13 @@ static TokenType identifierType() {
     return TOKEN_IDENTIFIER;
 }
 
+// Scan and return identifier
 static Token identifier() {
     while (isAlpha(peek()) || isDigit(peek())) advance();
     return makeToken(identifierType());
 }
 
+// Scan and return number
 static Token number() {
     while (isDigit(peek())) advance();
 
@@ -156,6 +216,7 @@ static Token number() {
     return makeToken(TOKEN_NUMBER);
 }
 
+// Scan and return string
 static Token string() {
     while (peek() != '"' && !isAtEnd()) {
         if (peek() == '\n') scanner.line++;
@@ -167,6 +228,7 @@ static Token string() {
     return makeToken(TOKEN_STRING);
 }
 
+// Scan and return next token
 Token scanToken() {
     skipWhitespace();
     scanner.start = scanner.current;
